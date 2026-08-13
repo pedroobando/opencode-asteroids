@@ -25,12 +25,13 @@ Luego visitá `http://localhost:3000`.
 
 ## Controles
 
-| Tecla     | Acción                       |
-| --------- | ---------------------------- |
-| `←` `→`   | Rotar la nave                |
-| `↑`       | Propulsar                    |
-| `Espacio` | Disparar                     |
-| `S`       | Cambiar la skin de la nave   |
+| Tecla       | Acción                            |
+| ----------- | --------------------------------- |
+| `←` `→`     | Rotar la nave                     |
+| `↑`         | Propulsar                         |
+| `Espacio`   | Disparar                          |
+| `S`         | Activar el escudo                 |
+| `Shift + S` | Cambiar la skin de la nave        |
 
 > **Nota:** las teclas de dirección y `Espacio` evitan el desplazamiento de la página.
 
@@ -67,19 +68,42 @@ Los asteroides se generan con formas irregulares y rotación propia. Al destruir
 - Puntos por destruirla: **500**.
 - ⚠️ Si desaparece sin ser destruida, se divide en **2 asteroides pequeños**.
 
-## Power-up de velocidad
+## Power-ups
 
-- Al destruir un asteroide hay un **10% de probabilidad** de soltar un power-up dorado con la letra **V**.
+Al destruir un asteroide hay un **10% de probabilidad** de soltar un power-up. Hay dos variantes:
+
+### Velocidad (V) — 70% de los power-ups
+
+- Aparece como un anillo dorado con la letra **V**.
 - El power-up dura **8 segundos** en pantalla antes de desaparecer.
 - Al recogerlo:
   - La velocidad máxima de la nave se duplica durante **5 segundos**.
   - Aparece una estela visual azul.
   - Se reproduce un efecto de sonido.
+
+### Triple disparo (3) — 30% de los power-ups
+
+- Aparece como un anillo naranja con el número **3**.
+- Al recogerlo, durante **5 segundos** la nave dispara **3 balas en abanico**: una central y dos laterales que se abren progresivamente (drift perpendicular de 90 px/s por bala).
+- Se reproduce un arpegio mayor ascendente al recogerlo.
 - El HUD muestra el tiempo restante del efecto con una barra.
+
+El HUD muestra el tiempo restante de cada efecto con su propia barra.
+
+## Escudo
+
+- Pulsá `S` para activar un escudo temporal que te protege de una colisión con un asteroide o una estrella fugaz.
+- Duración del escudo: **3 segundos** con efecto visual de anillo cian pulsante.
+- Al colisionar con el escudo activo, el asteroide o la estrella rebota y explota en partículas en vez de matarte.
+- Tras agotarse, el escudo entra en **cooldown de 8 segundos** antes de poder volver a usarlo.
+- El HUD muestra el estado del escudo en la esquina superior izquierda:
+  - **ESCUDO** (cian) mientras está activo, con barra de tiempo restante.
+  - **ESCUDO LISTO** (verde) cuando se puede volver a usar.
+  - **ESCUDO** (gris) durante el cooldown, con barra de progreso de recarga.
 
 ## Skins
 
-Pulsá `S` para ciclar entre las apariencias disponibles de la nave. La elección se guarda en `localStorage` y se restaura automáticamente al recargar la página. Al cambiar de skin se muestra brevemente el nombre en el HUD y los iconos de vida se actualizan a la nueva apariencia.
+Pulsá `Shift + S` para ciclar entre las apariencias disponibles de la nave. La elección se guarda en `localStorage` y se restaura automáticamente al recargar la página. Al cambiar de skin se muestra brevemente el nombre en el HUD y los iconos de vida se actualizan a la nueva apariencia.
 
 | Skin        | Color  | Descripción                              |
 | ----------- | ------ | ---------------------------------------- |
@@ -103,7 +127,9 @@ Pulsá `S` para ciclar entre las apariencias disponibles de la nave. La elecció
 - 3 vidas con invencibilidad temporal al reaparecer.
 - Asteroides que se fragmentan al destruirse.
 - Partículas de explosión al impactar.
-- Power-up de velocidad con indicador en pantalla.
+- Power-ups de **velocidad** y **triple disparo** con drop aleatorio e indicador en pantalla.
+- **Escudo** activable con cooldown para sobrevivir colisiones.
+- **Skins** intercambiables para la nave (con persistencia en `localStorage`).
 - Estrella fugaz con mecánica de recompensa/riesgo.
 - Pantalla de Game Over con puntaje final.
-- HUD en español: puntaje, nivel, vidas y estado del power-up.
+- HUD en español: puntaje, nivel, vidas y estado de power-ups y escudo.
