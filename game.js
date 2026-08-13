@@ -2,8 +2,8 @@
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-const W = 800;
-const H = 600;
+const W = canvas.width;
+const H = canvas.height;
 
 // ── Input ─────────────────────────────────────────────────────────────────────
 const keys = {};
@@ -541,7 +541,7 @@ class PowerUp {
       ctx.stroke();
 
       ctx.fillStyle = '#50dcff';
-      ctx.font = 'bold 11px monospace';
+      ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('K', 0, 1);
@@ -559,7 +559,7 @@ class PowerUp {
       ctx.stroke();
 
       ctx.fillStyle = ringColor;
-      ctx.font = 'bold 11px monospace';
+      ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, 0, 1);
@@ -889,84 +889,84 @@ function drawLifeIcon(x, y) {
 
 function drawHUD() {
   ctx.fillStyle = '#fff';
-  ctx.font = '15px monospace';
+  ctx.font = '19px monospace';
 
   ctx.textAlign = 'left';
-  ctx.fillText(`SCORE  ${score}`, 14, 26);
+  ctx.fillText(`SCORE  ${score}`, 18, 34);
 
   ctx.textAlign = 'center';
-  ctx.fillText(`NIVEL ${level}`, W / 2, 26);
+  ctx.fillText(`NIVEL ${level}`, W / 2, 34);
 
   if (skinToastTimer > 0) {
     const alpha = Math.min(1, skinToastTimer / 0.4);
     ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
-    ctx.font = '13px monospace';
-    ctx.fillText(`SKIN: ${SKINS[skinIndex].name}`, W / 2, 44);
+    ctx.font = '17px monospace';
+    ctx.fillText(`SKIN: ${SKINS[skinIndex].name}`, W / 2, 58);
   }
 
   for (let i = 0; i < lives; i++)
-    drawLifeIcon(W - 16 - i * 22, 18);
+    drawLifeIcon(W - 20 - i * 28, 24);
 
   // Indicador de velocidad activa
   if (ship.speedBoostTimer > 0) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#64c8ff';
-    ctx.font = '13px monospace';
+    ctx.font = '17px monospace';
     const timeText = ship.speedBoostTimer.toFixed(1) + 's';
-    ctx.fillText(`VELOCIDAD ${timeText}`, 14, 46);
+    ctx.fillText(`VELOCIDAD ${timeText}`, 18, 60);
 
-    const barW = 80;
+    const barW = 104;
     const pct = Math.min(ship.speedBoostTimer / POWERUP_DURATION, 1);
     ctx.strokeStyle = '#64c8ff';
     ctx.lineWidth = 1;
-    ctx.strokeRect(14, 52, barW, 6);
+    ctx.strokeRect(18, 68, barW, 8);
     ctx.fillStyle = 'rgba(100, 200, 255, 0.75)';
-    ctx.fillRect(14, 52, barW * pct, 6);
+    ctx.fillRect(18, 68, barW * pct, 8);
   }
 
   // Indicador de triple-shot activo
   if (ship.tripleShotTimer > 0) {
     ctx.textAlign = 'left';
     ctx.fillStyle = POWERUP_TRIPLE_COLOR;
-    ctx.font = '13px monospace';
+    ctx.font = '17px monospace';
     const timeText = ship.tripleShotTimer.toFixed(1) + 's';
-    ctx.fillText(`TRIPLE ${timeText}`, 14, 70);
+    ctx.fillText(`TRIPLE ${timeText}`, 18, 92);
 
-    const barW = 80;
+    const barW = 104;
     const pct = Math.min(ship.tripleShotTimer / POWERUP_DURATION, 1);
     ctx.strokeStyle = POWERUP_TRIPLE_COLOR;
     ctx.lineWidth = 1;
-    ctx.strokeRect(14, 76, barW, 6);
+    ctx.strokeRect(18, 100, barW, 8);
     ctx.fillStyle = 'rgba(255, 140, 26, 0.75)';
-    ctx.fillRect(14, 76, barW * pct, 6);
+    ctx.fillRect(18, 100, barW * pct, 8);
   }
 
   // Indicador de escudo activo
   if (ship.shieldActive) {
     ctx.textAlign = 'left';
     ctx.fillStyle = '#50dcff';
-    ctx.font = '13px monospace';
+    ctx.font = '17px monospace';
     const timeText = ship.shieldTimer.toFixed(1) + 's';
-    ctx.fillText(`ESCUDO ${timeText}`, 14, 94);
+    ctx.fillText(`ESCUDO ${timeText}`, 18, 124);
 
-    const barW = 80;
+    const barW = 104;
     const pct = Math.max(0, Math.min(ship.shieldTimer / SHIELD_DURATION, 1));
     ctx.strokeStyle = '#50dcff';
     ctx.lineWidth = 1;
-    ctx.strokeRect(14, 100, barW, 6);
+    ctx.strokeRect(18, 132, barW, 8);
     ctx.fillStyle = 'rgba(80, 220, 255, 0.75)';
-    ctx.fillRect(14, 100, barW * pct, 6);
+    ctx.fillRect(18, 132, barW * pct, 8);
   }
 }
 
 function drawOverlay(title, sub) {
   ctx.textAlign   = 'center';
   ctx.fillStyle   = '#fff';
-  ctx.font        = 'bold 46px monospace';
-  ctx.fillText(title, W / 2, H / 2 - 18);
-  ctx.font        = '18px monospace';
+  ctx.font        = 'bold 60px monospace';
+  ctx.fillText(title, W / 2, H / 2 - 24);
+  ctx.font        = '22px monospace';
   ctx.fillStyle   = 'rgba(255,255,255,0.65)';
-  ctx.fillText(sub, W / 2, H / 2 + 22);
+  ctx.fillText(sub, W / 2, H / 2 + 28);
 }
 
 function draw() {

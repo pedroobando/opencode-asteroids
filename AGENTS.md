@@ -2,7 +2,7 @@
 
 ## Project shape
 - Single-file HTML5 Canvas Asteroids clone. Zero dependencies, no bundler, no build step.
-- Entry points: `index.html` loads `game.js`. Canvas is fixed at 800×600.
+- Entry points: `index.html` loads `game.js`. Canvas is fixed at 1040×780 (1.3x of the original 800×600); `W`/`H` in `game.js` are derived from the canvas attributes.
 - All game logic lives in `game.js`; styles are inline in `index.html`.
 - Core entities: `Ship`, `Bullet`, `Asteroid`, `ShootingStar`, `PowerUp`, `Particle`.
 - Mechanics include classic asteroid shooting, lives/levels, periodic shooting stars (bonus target), and a speed-boost power-up.
