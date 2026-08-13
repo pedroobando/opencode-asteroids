@@ -106,6 +106,7 @@ Pulsá `K` para ciclar entre las apariencias disponibles de la nave. La elecció
 | Cazadora    | Roja    | Delta agresivo de 5 vértices.            |
 | Acorazado   | Cyan    | Polígono ancho de 6 vértices.            |
 | Espectral   | Violeta | Delta compacto con brillo (glow).        |
+| Titán       | Morada  | El doble de grande. ¡Otorga **x2 puntos** por cada destrucción! |
 
 > Agregar más skins es trivial: basta con sumar un objeto más al array `SKINS` en `game.js`.
 

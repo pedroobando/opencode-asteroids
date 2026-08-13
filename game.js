@@ -249,6 +249,16 @@ const SKINS = [
     verts:  [ [ 20,  0], [-10, -8], [-12,  0], [-10,  8] ],
     glow:   8,
   },
+  {
+    id: 'titan',
+    name: 'Titán',
+    stroke: '#a020f0',
+    flame:  'rgba(200, 80, 255, 0.9)',
+    verts:  [ [ 40,  0], [-24, -18], [-14,  0], [-24,  18] ],
+    glow:   10,
+    scale:  2,
+    pointsMultiplier: 2,
+  },
 ];
 
 function loadSkinIndex() {
@@ -280,7 +290,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * (SKINS[skinIndex].scale || 1);
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -347,7 +357,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = 21 * (SKINS[skinIndex].scale || 1);
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     if (this.tripleShotTimer > 0) {
@@ -393,6 +403,8 @@ class Ship {
     ctx.rotate(this.angle);
 
     const skin = SKINS[skinIndex];
+    const shipScale = skin.scale || 1;
+    if (shipScale !== 1) ctx.scale(shipScale, shipScale);
     ctx.strokeStyle = skin.stroke;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
@@ -771,7 +783,7 @@ function update(dt) {
       if (!s.dead && !b.dead && dist(b, s) < s.radius) {
         b.dead = true;
         s.dead = true;
-        score += SHOOTING_STAR_POINTS;
+        score += SHOOTING_STAR_POINTS * (SKINS[skinIndex].pointsMultiplier || 1);
         explode(s.x, s.y, 12);
       }
     }
@@ -784,7 +796,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        score += POINTS[a.size] * (SKINS[skinIndex].pointsMultiplier || 1);
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < POWERUP_DROP_CHANCE) {
@@ -855,6 +867,7 @@ const LIFE_ICON_SCALE = 0.45;
 
 function drawLifeIcon(x, y) {
   const skin = SKINS[skinIndex];
+  const iconScale = LIFE_ICON_SCALE * (skin.scale || 1);
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
@@ -862,9 +875,9 @@ function drawLifeIcon(x, y) {
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo(skin.verts[0][0] * LIFE_ICON_SCALE, skin.verts[0][1] * LIFE_ICON_SCALE);
+  ctx.moveTo(skin.verts[0][0] * iconScale, skin.verts[0][1] * iconScale);
   for (let i = 1; i < skin.verts.length; i++)
-    ctx.lineTo(skin.verts[i][0] * LIFE_ICON_SCALE, skin.verts[i][1] * LIFE_ICON_SCALE);
+    ctx.lineTo(skin.verts[i][0] * iconScale, skin.verts[i][1] * iconScale);
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
@@ -876,6 +889,13 @@ function drawHUD() {
 
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE  ${score}`, 14, 26);
+  const ptsMultiplier = SKINS[skinIndex].pointsMultiplier || 1;
+  if (ptsMultiplier > 1) {
+    ctx.fillStyle = '#a020f0';
+    const scoreEndX = 14 + ctx.measureText(`SCORE  ${score}`).width + 10;
+    ctx.fillText(`x${ptsMultiplier} PUNTOS`, scoreEndX, 26);
+    ctx.fillStyle = '#fff';
+  }
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
