@@ -100,12 +100,13 @@ El HUD muestra el tiempo restante de cada efecto con su propia barra.
 
 Pulsá `K` para ciclar entre las apariencias disponibles de la nave. La elección se guarda en `localStorage` y se restaura automáticamente al recargar la página. Al cambiar de skin se muestra brevemente el nombre en el HUD y los iconos de vida se actualizan a la nueva apariencia.
 
-| Skin        | Color   | Descripción                              |
-| ----------- | ------- | ---------------------------------------- |
-| Clásica     | Blanca  | Triángulo con muesca trasera (original). |
-| Cazadora    | Roja    | Delta agresivo de 5 vértices.            |
-| Acorazado   | Cyan    | Polígono ancho de 6 vértices.            |
-| Espectral   | Violeta | Delta compacto con brillo (glow).        |
+| Skin        | Color   | Descripción                                             |
+| ----------- | ------- | ------------------------------------------------------- |
+| Clásica     | Blanca  | Triángulo con muesca trasera (original).                |
+| Cazadora    | Roja    | Delta agresivo de 5 vértices.                           |
+| Acorazado   | Cyan    | Polígono ancho de 6 vértices.                           |
+| Espectral   | Violeta | Delta compacto con brillo (glow).                       |
+| Titán       | Morada  | Nave 1.5× más grande con brillo; otorga puntos x2.      |
 
 > Agregar más skins es trivial: basta con sumar un objeto más al array `SKINS` en `game.js`.
 
