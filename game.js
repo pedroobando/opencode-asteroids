@@ -213,10 +213,8 @@ class ShootingStar {
 }
 
 // ── Escudo ────────────────────────────────────────────────────────────────────
-const SHIELD_DURATION = 3;     // segundos activo
-const SHIELD_COOLDOWN = 8;     // segundos de recarga total
+const SHIELD_DURATION = 7;     // segundos activo
 const SHIELD_RADIUS   = 30;
-const SHIELD_KEYS     = ['KeyS'];
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
@@ -237,7 +235,6 @@ class Ship {
     this.trail = [];
     this.shieldActive   = false;
     this.shieldTimer    = 0;
-    this.shieldCooldown = 0;
   }
 
   update(dt) {
@@ -253,7 +250,6 @@ class Ship {
         this.shieldTimer = 0;
       }
     }
-    if (this.shieldCooldown > 0) this.shieldCooldown -= dt;
 
     const ROT   = 3.5;   // rad/s
     const THRUST = 260;  // px/s²
@@ -301,11 +297,10 @@ class Ship {
     return [new Bullet(ox, oy, this.angle)];
   }
 
-  tryShield() {
-    if (this.dead || this.shieldActive || this.shieldCooldown > 0) return false;
+  activateShield() {
+    if (this.dead || this.shieldActive) return false;
     this.shieldActive = true;
     this.shieldTimer = SHIELD_DURATION;
-    this.shieldCooldown = SHIELD_DURATION + SHIELD_COOLDOWN;
     playShieldSound();
     return true;
   }
@@ -411,12 +406,14 @@ class Particle {
 const POWERUP_LIFETIME = 8;     // segundos en pantalla
 const POWERUP_DURATION = 5;     // segundos de efecto
 const POWERUP_DROP_CHANCE = 0.10;
+const POWERUP_TYPES = ['speed', 'shield'];
 
 class PowerUp {
   constructor(x, y) {
     this.x = x;
     this.y = y;
     this.radius = 10;
+    this.type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
     this.ttl = POWERUP_LIFETIME;
     this.dead = false;
     this.pulse = 0;
@@ -434,19 +431,41 @@ class PowerUp {
     ctx.translate(this.x, this.y);
     ctx.scale(scale, scale);
 
-    ctx.strokeStyle = '#ffd700';
-    ctx.fillStyle   = 'rgba(255, 215, 0, 0.18)';
-    ctx.lineWidth   = 1.5;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    if (this.type === 'shield') {
+      // Rombo cyan para escudo
+      ctx.strokeStyle = '#50dcff';
+      ctx.fillStyle   = 'rgba(80, 220, 255, 0.18)';
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -this.radius);
+      ctx.lineTo(this.radius, 0);
+      ctx.lineTo(0, this.radius);
+      ctx.lineTo(-this.radius, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
 
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('V', 0, 1);
+      ctx.fillStyle = '#50dcff';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('K', 0, 1);
+    } else {
+      // Círculo dorado para velocidad
+      ctx.strokeStyle = '#ffd700';
+      ctx.fillStyle   = 'rgba(255, 215, 0, 0.18)';
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('V', 0, 1);
+    }
 
     ctx.restore();
   }
@@ -604,12 +623,9 @@ function update(dt) {
     return;
   }
 
-  // Disparar y escudo
+  // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
-  }
-  if (SHIELD_KEYS.some(k => pressed(k))) {
-    ship.tryShield();
   }
 
   ship.update(dt);
@@ -702,8 +718,12 @@ function update(dt) {
   for (const p of powerups) {
     if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
-      ship.speedBoostTimer += POWERUP_DURATION;
-      playSpeedSound();
+      if (p.type === 'shield') {
+        ship.activateShield();
+      } else {
+        ship.speedBoostTimer += POWERUP_DURATION;
+        playSpeedSound();
+      }
     }
   }
   powerups = powerups.filter(p => !p.dead);
@@ -761,31 +781,25 @@ function drawHUD() {
   }
 
   // Indicador de escudo
-  const shieldReady = !ship.shieldActive && ship.shieldCooldown <= 0;
-  const shieldLabel = ship.shieldActive ? 'ESCUDO' : (shieldReady ? 'ESCUDO LISTO' : 'ESCUDO');
-  const shieldColor = ship.shieldActive ? '#50dcff' : (shieldReady ? '#50ff88' : '#888');
-  const shieldY = ship.speedBoostTimer > 0 ? 74 : 46;
-  const shieldBarY = ship.speedBoostTimer > 0 ? 80 : 52;
+  if (ship.shieldActive) {
+    const shieldY = ship.speedBoostTimer > 0 ? 74 : 46;
+    const shieldBarY = ship.speedBoostTimer > 0 ? 80 : 52;
 
-  ctx.textAlign = 'left';
-  ctx.fillStyle = shieldColor;
-  ctx.font = '13px monospace';
-  ctx.fillText(shieldLabel, 14, shieldY);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#50dcff';
+    ctx.font = '13px monospace';
+    const shieldTimeText = ship.shieldTimer.toFixed(1) + 's';
+    ctx.fillText(`ESCUDO ${shieldTimeText}`, 14, shieldY);
 
-  const shieldBarW = 80;
-  let shieldPct;
-  if (ship.shieldActive) shieldPct = ship.shieldTimer / SHIELD_DURATION;
-  else if (ship.shieldCooldown > 0) shieldPct = 1 - ship.shieldCooldown / SHIELD_COOLDOWN;
-  else shieldPct = 1;
-  shieldPct = Math.max(0, Math.min(1, shieldPct));
+    const shieldBarW = 80;
+    const shieldPct = Math.max(0, Math.min(ship.shieldTimer / SHIELD_DURATION, 1));
 
-  ctx.strokeStyle = shieldColor;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(14, shieldBarY, shieldBarW, 6);
-  ctx.fillStyle = ship.shieldActive
-    ? 'rgba(80, 220, 255, 0.75)'
-    : (shieldReady ? 'rgba(80, 255, 136, 0.75)' : 'rgba(136, 136, 136, 0.75)');
-  ctx.fillRect(14, shieldBarY, shieldBarW * shieldPct, 6);
+    ctx.strokeStyle = '#50dcff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(14, shieldBarY, shieldBarW, 6);
+    ctx.fillStyle = 'rgba(80, 220, 255, 0.75)';
+    ctx.fillRect(14, shieldBarY, shieldBarW * shieldPct, 6);
+  }
 }
 
 function drawOverlay(title, sub) {
