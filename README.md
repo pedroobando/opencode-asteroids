@@ -25,13 +25,12 @@ Luego visitá `http://localhost:3000`.
 
 ## Controles
 
-| Tecla       | Acción                            |
-| ----------- | --------------------------------- |
-| `←` `→`     | Rotar la nave                     |
-| `↑`         | Propulsar                         |
-| `Espacio`   | Disparar                          |
-| `S`         | Activar el escudo                 |
-| `Shift + S` | Cambiar la skin de la nave        |
+| Tecla     | Acción                       |
+| --------- | ---------------------------- |
+| `←` `→`   | Rotar la nave                |
+| `↑`       | Propulsar                    |
+| `Espacio` | Disparar                     |
+| `K`       | Cambiar la skin de la nave   |
 
 > **Nota:** las teclas de dirección y `Espacio` evitan el desplazamiento de la página.
 
@@ -70,9 +69,9 @@ Los asteroides se generan con formas irregulares y rotación propia. Al destruir
 
 ## Power-ups
 
-Al destruir un asteroide hay un **10% de probabilidad** de soltar un power-up. Hay dos variantes:
+Al destruir un asteroide hay un **10% de probabilidad** de soltar un power-up. Hay tres variantes:
 
-### Velocidad (V) — 70% de los power-ups
+### Velocidad (V) — 50% de los power-ups
 
 - Aparece como un anillo dorado con la letra **V**.
 - El power-up dura **8 segundos** en pantalla antes de desaparecer.
@@ -81,36 +80,32 @@ Al destruir un asteroide hay un **10% de probabilidad** de soltar un power-up. H
   - Aparece una estela visual azul.
   - Se reproduce un efecto de sonido.
 
-### Triple disparo (3) — 30% de los power-ups
+### Triple disparo (3) — 25% de los power-ups
 
 - Aparece como un anillo naranja con el número **3**.
 - Al recogerlo, durante **5 segundos** la nave dispara **3 balas en abanico**: una central y dos laterales que se abren progresivamente (drift perpendicular de 90 px/s por bala).
 - Se reproduce un arpegio mayor ascendente al recogerlo.
 - El HUD muestra el tiempo restante del efecto con una barra.
 
+### Escudo (K) — 25% de los power-ups
+
+- Aparece como un rombo cyan con la letra **K**.
+- Al recogerlo, la nave obtiene un **escudo temporal de 7 segundos**.
+- Con el escudo activo, si chocás contra un asteroide o una estrella fugaz, el objeto **rebota** y **explota** en partículas en vez de matarte.
+- El HUD muestra el tiempo restante del escudo con una barra.
+
 El HUD muestra el tiempo restante de cada efecto con su propia barra.
-
-## Escudo
-
-- Pulsá `S` para activar un escudo temporal que te protege de una colisión con un asteroide o una estrella fugaz.
-- Duración del escudo: **3 segundos** con efecto visual de anillo cian pulsante.
-- Al colisionar con el escudo activo, el asteroide o la estrella rebota y explota en partículas en vez de matarte.
-- Tras agotarse, el escudo entra en **cooldown de 8 segundos** antes de poder volver a usarlo.
-- El HUD muestra el estado del escudo en la esquina superior izquierda:
-  - **ESCUDO** (cian) mientras está activo, con barra de tiempo restante.
-  - **ESCUDO LISTO** (verde) cuando se puede volver a usar.
-  - **ESCUDO** (gris) durante el cooldown, con barra de progreso de recarga.
 
 ## Skins
 
-Pulsá `Shift + S` para ciclar entre las apariencias disponibles de la nave. La elección se guarda en `localStorage` y se restaura automáticamente al recargar la página. Al cambiar de skin se muestra brevemente el nombre en el HUD y los iconos de vida se actualizan a la nueva apariencia.
+Pulsá `K` para ciclar entre las apariencias disponibles de la nave. La elección se guarda en `localStorage` y se restaura automáticamente al recargar la página. Al cambiar de skin se muestra brevemente el nombre en el HUD y los iconos de vida se actualizan a la nueva apariencia.
 
-| Skin        | Color  | Descripción                              |
-| ----------- | ------ | ---------------------------------------- |
-| Clásica     | Blanca | Triángulo con muesca trasera (original). |
-| Cazadora    | Roja   | Delta agresivo de 5 vértices.            |
-| Acorazado   | Cyan   | Polígono ancho de 6 vértices.            |
-| Espectral   | Violeta| Delta compacto con brillo (glow).         |
+| Skin        | Color   | Descripción                              |
+| ----------- | ------- | ---------------------------------------- |
+| Clásica     | Blanca  | Triángulo con muesca trasera (original). |
+| Cazadora    | Roja    | Delta agresivo de 5 vértices.            |
+| Acorazado   | Cyan    | Polígono ancho de 6 vértices.            |
+| Espectral   | Violeta | Delta compacto con brillo (glow).        |
 
 > Agregar más skins es trivial: basta con sumar un objeto más al array `SKINS` en `game.js`.
 
@@ -127,9 +122,8 @@ Pulsá `Shift + S` para ciclar entre las apariencias disponibles de la nave. La 
 - 3 vidas con invencibilidad temporal al reaparecer.
 - Asteroides que se fragmentan al destruirse.
 - Partículas de explosión al impactar.
-- Power-ups de **velocidad** y **triple disparo** con drop aleatorio e indicador en pantalla.
-- **Escudo** activable con cooldown para sobrevivir colisiones.
+- Power-ups de **velocidad**, **triple disparo** y **escudo** con drop aleatorio e indicador en pantalla.
 - **Skins** intercambiables para la nave (con persistencia en `localStorage`).
 - Estrella fugaz con mecánica de recompensa/riesgo.
 - Pantalla de Game Over con puntaje final.
-- HUD en español: puntaje, nivel, vidas y estado de power-ups y escudo.
+- HUD en español: puntaje, nivel, vidas y estado de power-ups.
