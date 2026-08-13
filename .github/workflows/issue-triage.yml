@@ -1,0 +1,54 @@
+name: issue-triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    if: ${{ !github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+
+      - name: Setup git author
+        run: |
+          git config --global user.name "opencode-github-actions[bot]"
+          git config --global user.email "7023498+opencode-github-actions[bot]@users.noreply.github.com"
+
+      - name: Run opencode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: opencode-go/minimax-m3
+          use_github_token: true
+          prompt: |
+            Se abrió un nuevo issue. Realizá el triage automático.
+
+            Issue #${{ github.event.issue.number }} — ${{ github.event.issue.title }}
+            Autor: @${{ github.event.issue.user.login }}
+            Body original:
+            ${{ github.event.issue.body }}
+
+            Pasos:
+            1. Si el body empieza con `<!-- issue-triage:processed -->`, abortá (ya fue procesado).
+            2. Detectá labels por keywords en título+body. Candidatas: `bug`, `enhancement`, `question`, `documentation`, `skin`, `power-up`, `gameplay`. Crealas si no existen (`gh label create <name> --color <hex> --description <desc>`) con colores hex coherentes.
+            3. Reemplazá el body con este orden:
+               - Primera línea: `<!-- issue-triage:processed -->`.
+               - Sección `## Metadatos para revisión` con: autor, fecha de apertura en español (UTC), número, URL, repositorio, branch por defecto, último commit (obtenelo con `gh api repos/{owner}/{repo}/branches/{default}`), entorno reportado (extraé `SO:`, `Navegador:`, `Versión:`, `URL:` del body original; si faltan, `—`), labels aplicadas.
+               - Separador `---`.
+               - Sección `## Reporte del usuario` con el body original **verbatim, sin tocar**.
+            4. Aplicá las labels detectadas: `gh issue edit <num> --add-label <csv>`.
+            5. Actualizá el body: `gh issue edit <num> --body <nuevo body>`.
+            6. Si creaste labels nuevas, commiteá y pusheá; si no, no commitees nada.
+
+            Importante: el contenido del usuario debe quedar textual, sin reescribir ni reformatear.
