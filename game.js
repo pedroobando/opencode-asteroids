@@ -212,6 +212,56 @@ class ShootingStar {
   }
 }
 
+// ── Skins ─────────────────────────────────────────────────────────────────────
+const SKIN_STORAGE_KEY = 'asteroids.skin';
+
+const SKINS = [
+  {
+    id: 'classic',
+    name: 'Clásica',
+    stroke: '#ffffff',
+    flame:  'rgba(255, 130, 0, 0.85)',
+    verts:  [ [ 20,  0], [-12, -9], [ -7,  0], [-12,  9] ],
+  },
+  {
+    id: 'hunter',
+    name: 'Cazadora',
+    stroke: '#ff4d4d',
+    flame:  'rgba(255, 80, 30, 0.9)',
+    verts:  [ [ 22,  0], [-14, -7], [ -6, -3], [ -6,  3], [-14,  7] ],
+  },
+  {
+    id: 'cruiser',
+    name: 'Acorazado',
+    stroke: '#64c8ff',
+    flame:  'rgba(255, 200, 80, 0.85)',
+    verts:  [ [ 18,  0], [-10, -10], [-14, -6], [ -4,  0], [-14,  6], [-10,  10] ],
+  },
+  {
+    id: 'ghost',
+    name: 'Espectral',
+    stroke: '#c084ff',
+    flame:  'rgba(180, 100, 255, 0.85)',
+    verts:  [ [ 20,  0], [-10, -8], [-12,  0], [-10,  8] ],
+    glow:   8,
+  },
+];
+
+function loadSkinIndex() {
+  try {
+    const id = localStorage.getItem(SKIN_STORAGE_KEY);
+    const idx = SKINS.findIndex(s => s.id === id);
+    if (idx >= 0) return idx;
+  } catch (_) { /* localStorage no disponible */ }
+  return 0;
+}
+
+function saveSkinIndex() {
+  try {
+    localStorage.setItem(SKIN_STORAGE_KEY, SKINS[skinIndex].id);
+  } catch (_) { /* no-op */ }
+}
+
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
   constructor() { this.reset(); }
@@ -306,16 +356,21 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+
+    const skin = SKINS[skinIndex];
+    ctx.strokeStyle = skin.stroke;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
+    if (skin.glow) {
+      ctx.shadowBlur  = skin.glow;
+      ctx.shadowColor = skin.stroke;
+    }
 
-    // Silueta clásica: triángulo con muesca trasera
+    // Silueta de la skin
     ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
+    ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+    for (let i = 1; i < skin.verts.length; i++)
+      ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
     ctx.closePath();
     ctx.stroke();
 
@@ -325,7 +380,7 @@ class Ship {
       ctx.moveTo(-8, -4);
       ctx.lineTo(-8 - rand(6, 14), 0);
       ctx.lineTo(-8,  4);
-      ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
+      ctx.strokeStyle = skin.flame;
       ctx.stroke();
     }
 
@@ -443,6 +498,8 @@ let score, lives, level;
 let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer;
 let shootingStarTimer;
+let skinIndex;
+let skinToastTimer;
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -516,6 +573,14 @@ function killShip() {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
+  if (skinToastTimer > 0) skinToastTimer -= dt;
+
+  if ((pressed('ShiftLeft') || pressed('ShiftRight')) && pressed('KeyS')) {
+    skinIndex = (skinIndex + 1) % SKINS.length;
+    saveSkinIndex();
+    skinToastTimer = 1.6;
+  }
+
   if (state === 'gameover') {
     if (pressed('Space')) initGame();
     particles.forEach(p => p.update(dt));
@@ -628,18 +693,20 @@ function update(dt) {
 }
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
+const LIFE_ICON_SCALE = 0.45;
+
 function drawLifeIcon(x, y) {
+  const skin = SKINS[skinIndex];
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = skin.stroke;
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
+  ctx.moveTo(skin.verts[0][0] * LIFE_ICON_SCALE, skin.verts[0][1] * LIFE_ICON_SCALE);
+  for (let i = 1; i < skin.verts.length; i++)
+    ctx.lineTo(skin.verts[i][0] * LIFE_ICON_SCALE, skin.verts[i][1] * LIFE_ICON_SCALE);
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
@@ -654,6 +721,13 @@ function drawHUD() {
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
+
+  if (skinToastTimer > 0) {
+    const alpha = Math.min(1, skinToastTimer / 0.4);
+    ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+    ctx.font = '13px monospace';
+    ctx.fillText(`SKIN: ${SKINS[skinIndex].name}`, W / 2, 44);
+  }
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
@@ -714,5 +788,8 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
+skinIndex     = loadSkinIndex();
+skinToastTimer = 0;
 initGame();
 requestAnimationFrame(loop);
+
