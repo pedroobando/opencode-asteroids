@@ -888,7 +888,7 @@ function drawHUD() {
     ctx.fillRect(14, 52, barW * pct, 6);
   }
 
-// Indicador de triple-shot activo
+  // Indicador de triple-shot activo
   if (ship.tripleShotTimer > 0) {
     ctx.textAlign = 'left';
     ctx.fillStyle = POWERUP_TRIPLE_COLOR;
