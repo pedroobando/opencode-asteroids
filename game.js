@@ -249,6 +249,16 @@ const SKINS = [
     verts:  [ [ 20,  0], [-10, -8], [-12,  0], [-10,  8] ],
     glow:   8,
   },
+  {
+    id: 'titan',
+    name: 'Titán',
+    stroke: '#a855f7',
+    flame:  'rgba(220, 100, 255, 0.9)',
+    verts:  [ [ 20,  0], [-12, -9], [ -7,  0], [-12,  9] ],
+    glow:   12,
+    scale:  1.5,
+    scoreMultiplier: 2,
+  },
 ];
 
 function loadSkinIndex() {
@@ -280,7 +290,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = 12 * (SKINS[skinIndex].scale || 1);
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -347,7 +357,11 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const skin = SKINS[skinIndex];
+    const sc = skin.scale || 1;
+    let maxX = 0;
+    for (const v of skin.verts) if (v[0] > maxX) maxX = v[0];
+    const NOSE = (maxX + 1) * sc;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
     if (this.tripleShotTimer > 0) {
@@ -393,6 +407,7 @@ class Ship {
     ctx.rotate(this.angle);
 
     const skin = SKINS[skinIndex];
+    const sc = skin.scale || 1;
     ctx.strokeStyle = skin.stroke;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
@@ -403,18 +418,18 @@ class Ship {
 
     // Silueta de la skin
     ctx.beginPath();
-    ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+    ctx.moveTo(skin.verts[0][0] * sc, skin.verts[0][1] * sc);
     for (let i = 1; i < skin.verts.length; i++)
-      ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
+      ctx.lineTo(skin.verts[i][0] * sc, skin.verts[i][1] * sc);
     ctx.closePath();
     ctx.stroke();
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
       ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
+      ctx.moveTo(-8 * sc, -4 * sc);
+      ctx.lineTo(-8 * sc - rand(6, 14) * sc, 0);
+      ctx.lineTo(-8 * sc,  4 * sc);
       ctx.strokeStyle = skin.flame;
       ctx.stroke();
     }
@@ -766,12 +781,13 @@ function update(dt) {
   particles = particles.filter(p => !p.dead);
 
   // Bala vs estrella fugaz
+  const scoreMult = SKINS[skinIndex].scoreMultiplier || 1;
   for (const b of bullets) {
     for (const s of shootingStars) {
       if (!s.dead && !b.dead && dist(b, s) < s.radius) {
         b.dead = true;
         s.dead = true;
-        score += SHOOTING_STAR_POINTS;
+        score += SHOOTING_STAR_POINTS * scoreMult;
         explode(s.x, s.y, 12);
       }
     }
@@ -784,7 +800,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        score += POINTS[a.size] * scoreMult;
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < POWERUP_DROP_CHANCE) {
@@ -855,6 +871,7 @@ const LIFE_ICON_SCALE = 0.45;
 
 function drawLifeIcon(x, y) {
   const skin = SKINS[skinIndex];
+  const sc = (skin.scale || 1) * LIFE_ICON_SCALE;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
@@ -862,9 +879,9 @@ function drawLifeIcon(x, y) {
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo(skin.verts[0][0] * LIFE_ICON_SCALE, skin.verts[0][1] * LIFE_ICON_SCALE);
+  ctx.moveTo(skin.verts[0][0] * sc, skin.verts[0][1] * sc);
   for (let i = 1; i < skin.verts.length; i++)
-    ctx.lineTo(skin.verts[i][0] * LIFE_ICON_SCALE, skin.verts[i][1] * LIFE_ICON_SCALE);
+    ctx.lineTo(skin.verts[i][0] * sc, skin.verts[i][1] * sc);
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
