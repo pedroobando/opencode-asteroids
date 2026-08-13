@@ -267,10 +267,8 @@ function saveSkinIndex() {
 }
 
 // ── Escudo ────────────────────────────────────────────────────────────────────
-const SHIELD_DURATION = 3;     // segundos activo
-const SHIELD_COOLDOWN = 8;     // segundos de recarga total
+const SHIELD_DURATION = 7;     // segundos activo
 const SHIELD_RADIUS   = 30;
-const SHIELD_KEYS     = ['KeyS'];
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
@@ -292,7 +290,6 @@ class Ship {
     this.trail = [];
     this.shieldActive   = false;
     this.shieldTimer    = 0;
-    this.shieldCooldown = 0;
   }
 
   update(dt) {
@@ -309,7 +306,6 @@ class Ship {
         this.shieldTimer = 0;
       }
     }
-    if (this.shieldCooldown > 0) this.shieldCooldown -= dt;
 
     const ROT   = 3.5;   // rad/s
     const THRUST = 260;  // px/s²
@@ -364,11 +360,10 @@ class Ship {
     return [new Bullet(ox, oy, this.angle)];
   }
 
-  tryShield() {
-    if (this.dead || this.shieldActive || this.shieldCooldown > 0) return false;
+  activateShield() {
+    if (this.dead || this.shieldActive) return false;
     this.shieldActive = true;
     this.shieldTimer = SHIELD_DURATION;
-    this.shieldCooldown = SHIELD_DURATION + SHIELD_COOLDOWN;
     playShieldSound();
     return true;
   }
@@ -479,17 +474,22 @@ class Particle {
 const POWERUP_LIFETIME = 8;     // segundos en pantalla
 const POWERUP_DURATION = 5;     // segundos de efecto
 const POWERUP_DROP_CHANCE = 0.10;
-const POWERUP_TYPE = { SPEED: 'speed', TRIPLE: 'triple' };
-const POWERUP_TRIPLE_DROP_RATIO = 0.3;   // 30% triple, 70% speed
+const POWERUP_TYPE = { SPEED: 'speed', TRIPLE: 'triple', SHIELD: 'shield' };
+const POWERUP_TYPES = [
+  POWERUP_TYPE.SPEED,
+  POWERUP_TYPE.SPEED,
+  POWERUP_TYPE.TRIPLE,
+  POWERUP_TYPE.SHIELD,
+];
 const POWERUP_TRIPLE_COLOR = '#ff8c1a';
 const POWERUP_TRIPLE_START_SPREAD = 0;   // separación inicial en px entre bullet central y laterales
 const POWERUP_TRIPLE_SPREAD_VEL   = 90;  // px/s de drift perpendicular por bala lateral
 
 class PowerUp {
-  constructor(x, y, type = POWERUP_TYPE.SPEED) {
+  constructor(x, y, type) {
     this.x = x;
     this.y = y;
-    this.type = type;
+    this.type = type || POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
     this.radius = 10;
     this.ttl = POWERUP_LIFETIME;
     this.dead = false;
@@ -505,27 +505,50 @@ class PowerUp {
   draw() {
     const scale = 1 + Math.sin(this.pulse) * 0.12;
     const isTriple = this.type === POWERUP_TYPE.TRIPLE;
-    const ringColor = isTriple ? POWERUP_TRIPLE_COLOR : '#ffd700';
-    const fillBg    = isTriple ? 'rgba(255, 140, 26, 0.18)' : 'rgba(255, 215, 0, 0.18)';
-    const label     = isTriple ? '3' : 'V';
+    const isShield = this.type === POWERUP_TYPE.SHIELD;
 
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.scale(scale, scale);
 
-    ctx.strokeStyle = ringColor;
-    ctx.fillStyle   = fillBg;
-    ctx.lineWidth   = 1.5;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    if (isShield) {
+      // Rombo cyan para escudo
+      ctx.strokeStyle = '#50dcff';
+      ctx.fillStyle   = 'rgba(80, 220, 255, 0.18)';
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -this.radius);
+      ctx.lineTo(this.radius, 0);
+      ctx.lineTo(0, this.radius);
+      ctx.lineTo(-this.radius, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
 
-    ctx.fillStyle = ringColor;
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, 0, 1);
+      ctx.fillStyle = '#50dcff';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('K', 0, 1);
+    } else {
+      const ringColor = isTriple ? POWERUP_TRIPLE_COLOR : '#ffd700';
+      const fillBg    = isTriple ? 'rgba(255, 140, 26, 0.18)' : 'rgba(255, 215, 0, 0.18)';
+      const label     = isTriple ? '3' : 'V';
+
+      ctx.strokeStyle = ringColor;
+      ctx.fillStyle   = fillBg;
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = ringColor;
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 0, 1);
+    }
 
     ctx.restore();
   }
@@ -715,12 +738,9 @@ function update(dt) {
     return;
   }
 
-  // Disparar y escudo
+  // Disparar
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
-  }
-  if (SHIELD_KEYS.some(k => pressed(k))) {
-    ship.tryShield();
   }
 
   ship.update(dt);
@@ -768,10 +788,7 @@ function update(dt) {
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < POWERUP_DROP_CHANCE) {
-          const type = Math.random() < POWERUP_TRIPLE_DROP_RATIO
-            ? POWERUP_TYPE.TRIPLE
-            : POWERUP_TYPE.SPEED;
-          powerups.push(new PowerUp(a.x, a.y, type));
+          powerups.push(new PowerUp(a.x, a.y));
         }
       }
     }
@@ -819,6 +836,8 @@ function update(dt) {
       if (p.type === POWERUP_TYPE.TRIPLE) {
         ship.tripleShotTimer += POWERUP_DURATION;
         playTripleSound();
+      } else if (p.type === POWERUP_TYPE.SHIELD) {
+        ship.activateShield();
       } else {
         ship.speedBoostTimer += POWERUP_DURATION;
         playSpeedSound();
@@ -905,30 +924,22 @@ function drawHUD() {
     ctx.fillRect(14, 76, barW * pct, 6);
   }
 
-  // Indicador de escudo
-  const shieldReady = !ship.shieldActive && ship.shieldCooldown <= 0;
-  const shieldLabel = ship.shieldActive ? 'ESCUDO' : (shieldReady ? 'ESCUDO LISTO' : 'ESCUDO');
-  const shieldColor = ship.shieldActive ? '#50dcff' : (shieldReady ? '#50ff88' : '#888');
+  // Indicador de escudo activo
+  if (ship.shieldActive) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#50dcff';
+    ctx.font = '13px monospace';
+    const timeText = ship.shieldTimer.toFixed(1) + 's';
+    ctx.fillText(`ESCUDO ${timeText}`, 14, 94);
 
-  ctx.textAlign = 'left';
-  ctx.fillStyle = shieldColor;
-  ctx.font = '13px monospace';
-  ctx.fillText(shieldLabel, 14, 94);
-
-  const shieldBarW = 80;
-  let shieldPct;
-  if (ship.shieldActive) shieldPct = ship.shieldTimer / SHIELD_DURATION;
-  else if (ship.shieldCooldown > 0) shieldPct = 1 - ship.shieldCooldown / SHIELD_COOLDOWN;
-  else shieldPct = 1;
-  shieldPct = Math.max(0, Math.min(1, shieldPct));
-
-  ctx.strokeStyle = shieldColor;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(14, 100, shieldBarW, 6);
-  ctx.fillStyle = ship.shieldActive
-    ? 'rgba(80, 220, 255, 0.75)'
-    : (shieldReady ? 'rgba(80, 255, 136, 0.75)' : 'rgba(136, 136, 136, 0.75)');
-  ctx.fillRect(14, 100, shieldBarW * shieldPct, 6);
+    const barW = 80;
+    const pct = Math.max(0, Math.min(ship.shieldTimer / SHIELD_DURATION, 1));
+    ctx.strokeStyle = '#50dcff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(14, 100, barW, 6);
+    ctx.fillStyle = 'rgba(80, 220, 255, 0.75)';
+    ctx.fillRect(14, 100, barW * pct, 6);
+  }
 }
 
 function drawOverlay(title, sub) {
