@@ -32,7 +32,7 @@ jobs:
           model: opencode-go/minimax-m3
           use_github_token: true
           prompt: |
-            Se abrió un nuevo issue. Realizá el triage automático.
+            Se abrió un nuevo issue. Realizá el triage automático y completá el body.
 
             Issue #${{ github.event.issue.number }} — ${{ github.event.issue.title }}
             Autor: @${{ github.event.issue.user.login }}
@@ -42,13 +42,20 @@ jobs:
             Pasos:
             1. Si el body empieza con `<!-- issue-triage:processed -->`, abortá (ya fue procesado).
             2. Detectá labels por keywords en título+body. Candidatas: `bug`, `enhancement`, `question`, `documentation`, `skin`, `power-up`, `gameplay`. Crealas si no existen (`gh label create <name> --color <hex> --description <desc>`) con colores hex coherentes.
-            3. Reemplazá el body con este orden:
+            3. Analizá el repo para entender el estado actual relacionado con el pedido (leé los archivos que consideres relevantes con `find`, `grep` o `cat`). Identificá:
+               - Qué archivos probablemente haya que modificar o actualizar.
+               - Una sugerencia breve (1–3 líneas) de cómo encarar la solución, sólo orientación conceptual, **sin código ni pseudo-código**.
+            4. Reescribí el body con cuatro secciones en este orden:
                - Primera línea: `<!-- issue-triage:processed -->`.
-               - Sección `## Metadatos para revisión` con: autor, fecha de apertura en español (UTC), número, URL, repositorio, branch por defecto, último commit (obtenelo con `gh api repos/{owner}/{repo}/branches/{default}`), entorno reportado (extraé `SO:`, `Navegador:`, `Versión:`, `URL:` del body original; si faltan, `—`), labels aplicadas.
-               - Separador `---`.
-               - Sección `## Reporte del usuario` con el body original **verbatim, sin tocar**.
-            4. Aplicá las labels detectadas: `gh issue edit <num> --add-label <csv>`.
-            5. Actualizá el body: `gh issue edit <num> --body <nuevo body>`.
-            6. Si creaste labels nuevas, commiteá y pusheá; si no, no commitees nada.
+               - `## Resumen`: en tus mejores palabras, formato profesional y claro, qué es lo que el usuario quiere. Una o dos oraciones.
+               - `## Descripción`: interpretación AI sobre lo que el usuario intenta explicar, **ampliando mucho más** lo que dijo. Profesional y claro. Distinta de `## Reporte Usuario` (que es el texto literal).
+               - `## Información Relevante` con esta estructura:
+                 - **Estado actual del proyecto:** <descripción breve del contexto relevante en el repo>
+                 - **Archivos a modificar/actualizar:** <lista con rutas, o `—` si no aplica>
+                 - **Sugerencia de resolución:** <1–3 líneas con orientación conceptual, sin código>
+               - `## Reporte Usuario`: el body original **verbatim, sin tocar**.
+            5. Aplicá las labels detectadas: `gh issue edit <num> --add-label <csv>`.
+            6. Actualizá el body: `gh issue edit <num> --body <nuevo body>`.
+            7. Si creaste labels nuevas, commiteá y pusheá; si no, no commitees nada.
 
-            Importante: el contenido del usuario debe quedar textual, sin reescribir ni reformatear.
+            Importante: el contenido del usuario debe quedar textual en la sección `## Reporte Usuario`, sin reescribir ni reformatear. La sección `## Descripción` es la interpretación AI, **no** copia del body.
