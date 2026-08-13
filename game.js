@@ -31,12 +31,16 @@ const randInt = (min, max) => Math.floor(rand(min, max + 1));
 
 // ── Bullet ────────────────────────────────────────────────────────────────────
 class Bullet {
-  constructor(x, y, angle) {
+  constructor(x, y, angle, perpVel = 0) {
     this.x = x;
     this.y = y;
     const SPEED = 520;
-    this.vx = Math.cos(angle) * SPEED;
-    this.vy = Math.sin(angle) * SPEED;
+    const fx = Math.cos(angle);
+    const fy = Math.sin(angle);
+    const px = -fy;          // vector perpendicular 90° CCW
+    const py =  fx;
+    this.vx = fx * SPEED + px * perpVel;
+    this.vy = fy * SPEED + py * perpVel;
     this.ttl  = 1.1;
     this.radius = 2;
     this.dead = false;
@@ -228,6 +232,7 @@ class Ship {
     this.shootCooldown = 0;
     this.dead          = false;
     this.speedBoostTimer = 0;
+    this.tripleShotTimer = 0;
     this.trail = [];
   }
 
@@ -236,6 +241,7 @@ class Ship {
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.speedBoostTimer > 0) this.speedBoostTimer -= dt;
+    if (this.tripleShotTimer > 0) this.tripleShotTimer -= dt;
 
     const ROT   = 3.5;   // rad/s
     const THRUST = 260;  // px/s²
@@ -280,6 +286,13 @@ class Ship {
     const NOSE = 21;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
+    if (this.tripleShotTimer > 0) {
+      return [
+        new Bullet(ox, oy, this.angle),
+        new Bullet(ox, oy, this.angle,  POWERUP_TRIPLE_SPREAD_VEL),
+        new Bullet(ox, oy, this.angle, -POWERUP_TRIPLE_SPREAD_VEL),
+      ];
+    }
     return [new Bullet(ox, oy, this.angle)];
   }
 
@@ -369,11 +382,17 @@ class Particle {
 const POWERUP_LIFETIME = 8;     // segundos en pantalla
 const POWERUP_DURATION = 5;     // segundos de efecto
 const POWERUP_DROP_CHANCE = 0.10;
+const POWERUP_TYPE = { SPEED: 'speed', TRIPLE: 'triple' };
+const POWERUP_TRIPLE_DROP_RATIO = 0.3;   // 30% triple, 70% speed
+const POWERUP_TRIPLE_COLOR = '#ff8c1a';
+const POWERUP_TRIPLE_START_SPREAD = 0;   // separación inicial en px entre bullet central y laterales
+const POWERUP_TRIPLE_SPREAD_VEL   = 90;  // px/s de drift perpendicular por bala lateral
 
 class PowerUp {
-  constructor(x, y) {
+  constructor(x, y, type = POWERUP_TYPE.SPEED) {
     this.x = x;
     this.y = y;
+    this.type = type;
     this.radius = 10;
     this.ttl = POWERUP_LIFETIME;
     this.dead = false;
@@ -388,23 +407,28 @@ class PowerUp {
 
   draw() {
     const scale = 1 + Math.sin(this.pulse) * 0.12;
+    const isTriple = this.type === POWERUP_TYPE.TRIPLE;
+    const ringColor = isTriple ? POWERUP_TRIPLE_COLOR : '#ffd700';
+    const fillBg    = isTriple ? 'rgba(255, 140, 26, 0.18)' : 'rgba(255, 215, 0, 0.18)';
+    const label     = isTriple ? '3' : 'V';
+
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.scale(scale, scale);
 
-    ctx.strokeStyle = '#ffd700';
-    ctx.fillStyle   = 'rgba(255, 215, 0, 0.18)';
+    ctx.strokeStyle = ringColor;
+    ctx.fillStyle   = fillBg;
     ctx.lineWidth   = 1.5;
     ctx.beginPath();
     ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = '#ffd700';
+    ctx.fillStyle = ringColor;
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('V', 0, 1);
+    ctx.fillText(label, 0, 1);
 
     ctx.restore();
   }
@@ -435,6 +459,27 @@ function playSpeedSound() {
   gain.connect(audioCtx.destination);
   osc.start(now);
   osc.stop(now + 0.2);
+}
+
+function playTripleSound() {
+  ensureAudio();
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const tones = [440, 554, 659];   // A4, C#5, E5 — arpegio mayor
+  const stepDur = 0.07;
+  for (let i = 0; i < tones.length; i++) {
+    const start = now + i * stepDur;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(tones[i], start);
+    gain.gain.setValueAtTime(0.16, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(start);
+    osc.stop(start + 0.2);
+  }
 }
 
 // ── Estado del juego ──────────────────────────────────────────────────────────
@@ -504,6 +549,7 @@ function killShip() {
   explode(ship.x, ship.y, 14);
   ship.dead = true;
   ship.speedBoostTimer = 0;
+  ship.tripleShotTimer = 0;
   ship.trail = [];
   lives--;
   if (lives <= 0) {
@@ -582,7 +628,10 @@ function update(dt) {
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < POWERUP_DROP_CHANCE) {
-          powerups.push(new PowerUp(a.x, a.y));
+          const type = Math.random() < POWERUP_TRIPLE_DROP_RATIO
+            ? POWERUP_TYPE.TRIPLE
+            : POWERUP_TYPE.SPEED;
+          powerups.push(new PowerUp(a.x, a.y, type));
         }
       }
     }
@@ -617,8 +666,13 @@ function update(dt) {
   for (const p of powerups) {
     if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
-      ship.speedBoostTimer += POWERUP_DURATION;
-      playSpeedSound();
+      if (p.type === POWERUP_TYPE.TRIPLE) {
+        ship.tripleShotTimer += POWERUP_DURATION;
+        playTripleSound();
+      } else {
+        ship.speedBoostTimer += POWERUP_DURATION;
+        playSpeedSound();
+      }
     }
   }
   powerups = powerups.filter(p => !p.dead);
@@ -673,6 +727,23 @@ function drawHUD() {
     ctx.strokeRect(14, 52, barW, 6);
     ctx.fillStyle = 'rgba(100, 200, 255, 0.75)';
     ctx.fillRect(14, 52, barW * pct, 6);
+  }
+
+  // Indicador de triple-shot activo
+  if (ship.tripleShotTimer > 0) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = POWERUP_TRIPLE_COLOR;
+    ctx.font = '13px monospace';
+    const timeText = ship.tripleShotTimer.toFixed(1) + 's';
+    ctx.fillText(`TRIPLE ${timeText}`, 14, 70);
+
+    const barW = 80;
+    const pct = Math.min(ship.tripleShotTimer / POWERUP_DURATION, 1);
+    ctx.strokeStyle = POWERUP_TRIPLE_COLOR;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(14, 76, barW, 6);
+    ctx.fillStyle = 'rgba(255, 140, 26, 0.75)';
+    ctx.fillRect(14, 76, barW * pct, 6);
   }
 }
 
