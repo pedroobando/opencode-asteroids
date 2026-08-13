@@ -575,7 +575,7 @@ function killShip() {
 function update(dt) {
   if (skinToastTimer > 0) skinToastTimer -= dt;
 
-  if ((pressed('ShiftLeft') || pressed('ShiftRight')) && pressed('KeyS')) {
+  if (pressed('KeyK')) {
     skinIndex = (skinIndex + 1) % SKINS.length;
     saveSkinIndex();
     skinToastTimer = 1.6;
