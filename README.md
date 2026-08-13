@@ -25,11 +25,12 @@ Luego visitá `http://localhost:3000`.
 
 ## Controles
 
-| Tecla     | Acción         |
-| --------- | -------------- |
-| `←` `→`   | Rotar la nave  |
-| `↑`       | Propulsar      |
-| `Espacio` | Disparar       |
+| Tecla     | Acción                       |
+| --------- | ---------------------------- |
+| `←` `→`   | Rotar la nave                |
+| `↑`       | Propulsar                    |
+| `Espacio` | Disparar                     |
+| `S`       | Cambiar la skin de la nave   |
 
 > **Nota:** las teclas de dirección y `Espacio` evitan el desplazamiento de la página.
 
@@ -75,6 +76,19 @@ Los asteroides se generan con formas irregulares y rotación propia. Al destruir
   - Aparece una estela visual azul.
   - Se reproduce un efecto de sonido.
 - El HUD muestra el tiempo restante del efecto con una barra.
+
+## Skins
+
+Pulsá `S` para ciclar entre las apariencias disponibles de la nave. La elección se guarda en `localStorage` y se restaura automáticamente al recargar la página. Al cambiar de skin se muestra brevemente el nombre en el HUD y los iconos de vida se actualizan a la nueva apariencia.
+
+| Skin        | Color  | Descripción                              |
+| ----------- | ------ | ---------------------------------------- |
+| Clásica     | Blanca | Triángulo con muesca trasera (original). |
+| Cazadora    | Roja   | Delta agresivo de 5 vértices.            |
+| Acorazado   | Cyan   | Polígono ancho de 6 vértices.            |
+| Espectral   | Violeta| Delta compacto con brillo (glow).         |
+
+> Agregar más skins es trivial: basta con sumar un objeto más al array `SKINS` en `game.js`.
 
 ## Vidas e invencibilidad
 
