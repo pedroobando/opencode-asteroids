@@ -2,25 +2,40 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
   <title>Asteroids</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       background: #000;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+      touch-action: none;
+    }
+    body {
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100vh;
     }
     canvas {
       display: block;
       border: 1px solid #222;
+      touch-action: none;
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas" width="800" height="600"></canvas>
+  <canvas id="canvas"></canvas>
   <script src="game.js"></script>
 </body>
 </html>

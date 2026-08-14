@@ -5,6 +5,49 @@ const ctx = canvas.getContext('2d');
 const W = 800;
 const H = 600;
 
+// ── Display / viewport ────────────────────────────────────────────────────────
+let dpr = 1;
+let displayScale = 1;
+
+function getViewportSize() {
+  if (window.visualViewport && window.visualViewport.width > 0)
+    return { w: window.visualViewport.width, h: window.visualViewport.height };
+  return { w: window.innerWidth, h: window.innerHeight };
+}
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  const { w: vw, h: vh } = getViewportSize();
+  const aspect = W / H;
+
+  let cssW, cssH;
+  if (vw / vh > aspect) {
+    cssH = vh;
+    cssW = cssH * aspect;
+  } else {
+    cssW = vw;
+    cssH = cssW / aspect;
+  }
+  cssW = Math.max(1, Math.floor(cssW));
+  cssH = Math.max(1, Math.floor(cssH));
+
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  canvas.width  = Math.max(1, Math.floor(cssW * dpr));
+  canvas.height = Math.max(1, Math.floor(cssH * dpr));
+
+  displayScale = canvas.width / W;
+}
+
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => {
+  setTimeout(resize, 50);
+  setTimeout(resize, 250);
+});
+if (window.visualViewport)
+  window.visualViewport.addEventListener('resize', resize);
+resize();
+
 // ── Input ─────────────────────────────────────────────────────────────────────
 const keys = {};
 const justPressed = {};
@@ -22,6 +65,79 @@ function pressed(code) {
   justPressed[code] = false;
   return val;
 }
+
+// ── Touch (móvil) ─────────────────────────────────────────────────────────────
+function clientToLogical(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((clientX - rect.left) / rect.width)  * W,
+    y: ((clientY - rect.top)  / rect.height) * H,
+  };
+}
+
+let touchId = null;
+let touchAim = null;          // {x, y} en coords lógicas
+let touchStartTime = 0;
+let touchStartPos = null;
+let touchMoved = false;
+
+const TAP_MAX_DURATION = 0.25;
+const TAP_MAX_DISTANCE = 15;
+
+canvas.addEventListener('touchstart', e => {
+  if (touchId !== null) return;
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  touchId = t.identifier;
+  const p = clientToLogical(t.clientX, t.clientY);
+  touchAim = p;
+  touchStartPos = p;
+  touchStartTime = performance.now() / 1000;
+  touchMoved = false;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === touchId) {
+      e.preventDefault();
+      const p = clientToLogical(t.clientX, t.clientY);
+      touchAim = p;
+      if (touchStartPos) {
+        const dx = p.x - touchStartPos.x;
+        const dy = p.y - touchStartPos.y;
+        if (dx * dx + dy * dy > TAP_MAX_DISTANCE * TAP_MAX_DISTANCE) touchMoved = true;
+      }
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === touchId) {
+      e.preventDefault();
+      const duration = (performance.now() / 1000) - touchStartTime;
+      const wasTap = !touchMoved && duration < TAP_MAX_DURATION;
+      touchId = null;
+      touchAim = null;
+      if (wasTap) {
+        if (state === 'gameover')      initGame();
+        else if (state === 'playing')  bullets.push(...ship.tryShoot());
+      }
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchcancel', () => {
+  touchId = null;
+  touchAim = null;
+  touchMoved = false;
+});
+
+canvas.addEventListener('click', e => {
+  if (touchId !== null) return;
+  if (state === 'gameover')      initGame();
+  else if (state === 'playing')  bullets.push(...ship.tryShoot());
+});
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const wrap  = (v, max) => ((v % max) + max) % max;
@@ -326,7 +442,23 @@ class Ship {
     if (keys['ArrowLeft'])  this.angle -= ROT * dt;
     if (keys['ArrowRight']) this.angle += ROT * dt;
 
-    this.thrusting = !!keys['ArrowUp'];
+    if (touchAim) {
+      const dx = touchAim.x - this.x;
+      const dy = touchAim.y - this.y;
+      if (dx !== 0 || dy !== 0) {
+        const target = Math.atan2(dy, dx);
+        let diff = target - this.angle;
+        while (diff >  Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const step = 5 * dt;
+        if (Math.abs(diff) <= step) this.angle = target;
+        else                        this.angle += Math.sign(diff) * step;
+      }
+    }
+
+    const keyboardThrust = !!keys['ArrowUp'];
+    const touchThrust    = touchAim !== null && touchMoved;
+    this.thrusting = keyboardThrust || touchThrust;
     if (this.thrusting) {
       this.vx += Math.cos(this.angle) * THRUST * dt;
       this.vy += Math.sin(this.angle) * THRUST * dt;
@@ -969,7 +1101,25 @@ function drawOverlay(title, sub) {
   ctx.fillText(sub, W / 2, H / 2 + 22);
 }
 
+function drawTouchAim() {
+  if (!touchAim) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(100, 200, 255, 0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(touchAim.x, touchAim.y, 14, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(touchAim.x - 22, touchAim.y); ctx.lineTo(touchAim.x - 7, touchAim.y);
+  ctx.moveTo(touchAim.x +  7, touchAim.y); ctx.lineTo(touchAim.x + 22, touchAim.y);
+  ctx.moveTo(touchAim.x, touchAim.y - 22); ctx.lineTo(touchAim.x, touchAim.y - 7);
+  ctx.moveTo(touchAim.x, touchAim.y +  7); ctx.lineTo(touchAim.x, touchAim.y + 22);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function draw() {
+  ctx.setTransform(displayScale, 0, 0, displayScale, 0, 0);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
@@ -980,10 +1130,11 @@ function draw() {
   bullets.forEach(b => b.draw());
   ship.draw();
 
+  drawTouchAim();
   drawHUD();
 
   if (state === 'gameover')
-    drawOverlay('GAME OVER', `PUNTAJE: ${score}   —   ESPACIO PARA REINICIAR`);
+    drawOverlay('GAME OVER', `PUNTAJE: ${score}   —   TOCA/ESPACIO PARA REINICIAR`);
 }
 
 // ── Loop principal ────────────────────────────────────────────────────────────
